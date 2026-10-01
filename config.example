@@ -1,0 +1,32 @@
+# /etc/cephfs-fe/config — one "key = value" per line; keys are the flag
+# names (cephfs-fe -h). Flags given on the command line override these.
+
+listen = 10.0.0.1:7788
+
+# No password here: pgx reads $PGPASSFILE or ~/.pgpass.
+pg-dsn = host=pg.example.org dbname=cephfs_index user=cephfs_fe
+
+tls-cert = /etc/cephfs-fe/tls/cert.pem
+tls-key = /etc/cephfs-fe/tls/key.pem
+
+# Client certificates (default):
+auth = mtls
+tls-ca = /etc/cephfs-fe/tls/client-ca.pem
+# One subject DN per line, e.g. UID=1000,CN=alice,O=Example Org
+allowed-subjects-file = /etc/cephfs-fe/allowed-subjects
+# cert-help-url = https://pki.example.org/
+# access-help-url = https://tickets.example.org/new
+
+# Or, without a PKI: user and password from a bcrypt htpasswd file
+# (htpasswd -B). Remove tls-ca and allowed-subjects-file above.
+# auth = basic
+# htpasswd-file = /etc/cephfs-fe/htpasswd
+
+# Defaults:
+# max-concurrent = 2
+# dir-workers = 4
+# timeout = 5m
+# limit = 500
+# export-limit = 1000000
+# export-timeout = 30m
+# reload-interval = 1m

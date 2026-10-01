@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CephFS Search</title>
+<link rel="stylesheet" href="app.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<header>
+  <h1>CephFS Search</h1>
+  <span class="sub">name search over the cephfs-index databases</span>
+  <span id="version" class="sub"></span>
+</header>
+
+<main>
+<section id="dashboard">
+  <table class="dash-table">
+    <thead><tr>
+      <th>Volume</th>
+      <th class="num">DB size</th>
+      <th class="num">Files</th>
+      <th class="num">Dirs</th>
+      <th class="num" title="symlinks + hardlinks + special files (hover a value for the breakdown)">Other</th>
+      <th>Last indexed</th>
+      <th class="num">Median size</th>
+      <th class="num">Avg size</th>
+      <th class="num">p90</th>
+      <th class="num">p99</th>
+    </tr></thead>
+    <tbody id="dash-rows"><tr><td colspan="10" class="dash-loading">Loading volume stats…</td></tr></tbody>
+  </table>
+</section>
+
+<form id="f" autocomplete="off">
+  <div class="row">
+    <label class="grow">Name
+      <input id="pattern" name="pattern" required placeholder="backup.json" spellcheck="false">
+    </label>
+    <label>Match
+      <select id="match" name="match">
+        <option value="exact" selected>exact name</option>
+        <option value="prefix">starts with</option>
+        <option value="contains">contains (slow)</option>
+        <option value="regex">regex, RE2 (slow)</option>
+      </select>
+    </label>
+    <button type="submit" id="go">Search</button>
+    <button type="button" id="cancel" hidden>Cancel</button>
+  </div>
+  <p class="hint" id="hint"></p>
+  <p class="warn" id="scanwarn" hidden></p>
+
+  <fieldset>
+    <legend>Volumes</legend>
+    <label class="check"><input type="checkbox" id="fs-all" checked> All</label>
+    <span id="volumes" class="volumes">loading…</span>
+  </fieldset>
+
+  <div class="row">
+    <fieldset class="inline">
+      <legend>Type</legend>
+      <label class="check"><input type="radio" name="type" value="" checked> Any</label>
+      <label class="check"><input type="radio" name="type" value="file"> File</label>
+      <label class="check"><input type="radio" name="type" value="dir"> Directory</label>
+    </fieldset>
+    <label>Modified on or after
+      <input type="date" id="newer" name="newer">
+    </label>
+    <label>Owner uid
+      <input id="uid" name="uid" inputmode="numeric" pattern="[0-9]*" size="12" placeholder="any">
+    </label>
+  </div>
+</form>
+
+<p id="building" class="banner" hidden></p>
+<section id="status" aria-live="polite"></section>
+
+<section id="results" hidden>
+  <div class="bar">
+    <span id="summary"></span>
+    <span class="spacer"></span>
+    <input id="filter" placeholder="filter shown rows" spellcheck="false">
+    <button type="button" id="copy">Copy paths</button>
+    <button type="button" id="export-csv">Export all (CSV)</button>
+    <button type="button" id="export-jsonl">JSONL</button>
+  </div>
+  <details id="details"><summary>Per volume</summary><table class="vols"><thead><tr><th>Volume</th><th>Matches</th><th>Candidates</th><th>Query</th><th>Paths</th><th>Index</th></tr></thead><tbody id="vols"></tbody></table></details>
+  <div class="scroll">
+    <table id="table">
+      <thead><tr>
+        <th data-k="path">Path</th><th data-k="type">Type</th><th data-k="uid" class="num">UID</th><th data-k="size" class="num">Size</th><th data-k="mtime">Modified</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</section>
+</main>
+<footer></footer>
+</body>
+</html>
