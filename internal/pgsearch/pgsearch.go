@@ -52,6 +52,7 @@ type Match struct {
 	UID   uint32
 	Size  int64
 	Mtime int64 // Unix seconds
+	Ctime int64 // Unix seconds
 	Path  string
 }
 
@@ -98,6 +99,7 @@ type matchRow struct {
 	uid    int64
 	size   int64
 	mtime  int64
+	ctime  int64
 }
 
 // NewPool creates a pgxpool configured for cephfs-index. The DSN must not
@@ -290,6 +292,7 @@ func (d *DB) Search(ctx context.Context, q Query, emit func(Match) error) (Stats
 				UID:   uint32(r.uid),
 				Size:  r.size,
 				Mtime: r.mtime,
+				Ctime: r.ctime,
 				Path:  dirs[r.parent] + "/" + r.name,
 			}); err != nil {
 				return err
@@ -304,7 +307,7 @@ func (d *DB) Search(ctx context.Context, q Query, emit func(Match) error) (Stats
 		st.Candidates++
 		var r matchRow
 		var typ string
-		if err := pgRows.Scan(&r.parent, &r.name, &r.ino, &typ, &r.uid, &r.size, &r.mtime); err != nil {
+		if err := pgRows.Scan(&r.parent, &r.name, &r.ino, &typ, &r.uid, &r.size, &r.mtime, &r.ctime); err != nil {
 			return st, err
 		}
 		r.typ = typ[0]
@@ -417,7 +420,7 @@ func buildQuery(fsName string, q Query) (pl plan) {
 		return fmt.Sprintf("$%d", len(args))
 	}
 
-	sb.WriteString(`SELECT parent, name, ino, type, uid, size, mtime FROM ` + qi(fsName) + `.entries WHERE `)
+	sb.WriteString(`SELECT parent, name, ino, type, uid, size, mtime, ctime FROM ` + qi(fsName) + `.entries WHERE `)
 
 	kind, lit := PureLiteral(q.Pattern)
 	exactFilter := false

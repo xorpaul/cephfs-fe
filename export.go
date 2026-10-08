@@ -47,7 +47,7 @@ type csvWriter struct {
 func newCSVWriter(bw *bufio.Writer) *csvWriter { return &csvWriter{bw, csv.NewWriter(bw)} }
 
 func (c *csvWriter) header() error {
-	return c.w.Write([]string{"fs", "path", "type", "uid", "size", "mtime", "mtime_utc"})
+	return c.w.Write([]string{"fs", "path", "type", "uid", "size", "mtime", "mtime_utc", "ctime", "ctime_utc"})
 }
 
 func (c *csvWriter) write(r row) error {
@@ -61,7 +61,8 @@ func (c *csvWriter) write(r row) error {
 		path = string(b)
 	}
 	return c.w.Write([]string{r.FS, path, typeNames[r.Type], uid, strconv.FormatInt(r.Size, 10),
-		strconv.FormatInt(r.Mtime, 10), time.Unix(r.Mtime, 0).UTC().Format(time.RFC3339)})
+		strconv.FormatInt(r.Mtime, 10), time.Unix(r.Mtime, 0).UTC().Format(time.RFC3339),
+		strconv.FormatInt(r.Ctime, 10), time.Unix(r.Ctime, 0).UTC().Format(time.RFC3339)})
 }
 
 func (c *csvWriter) trailer(s exportSummary) error {

@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.0 (2026-10-08)
+
+### Added
+- **ctime (inode change time)** — search results show a "Changed" column next to "Modified", the API returns `ctime` per row, and CSV exports gain `ctime` and `ctime_utc` columns (appended after `mtime_utc`). Needs indexes built by cephfs-index v1.1.0 or later; schemas from older builds have no `ctime` column and their searches fail until rebuilt.
+
 ## v1.0.0 (2026-10-01)
 
 First public release.

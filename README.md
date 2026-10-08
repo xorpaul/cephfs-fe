@@ -52,9 +52,9 @@ A search can be linked: the form state is kept in the page URL.
 All endpoints require the client certificate.
 
 - `GET /api/volumes` returns `{version, building:[fs…], volumes:[{fs, prefix, started_at, entries, complete, journal_flushed, warning, error}]}`.
-- `GET /api/search?pattern=P[&match=exact|prefix|contains|regex][&fs=vol1,vol2][&type=file|dir|symlink|hardlink][&newer=YYYY-MM-DD][&uid=N]` returns `{rows:[{fs,path,type,uid,size,mtime,lossy}], total, total_capped, truncated, limit, volumes:[{fs,matches,capped,…}], method, took_ms}`. `total_capped` means the total is a lower bound. The legacy parameter `regex=1` means `match=regex`.
+- `GET /api/search?pattern=P[&match=exact|prefix|contains|regex][&fs=vol1,vol2][&type=file|dir|symlink|hardlink][&newer=YYYY-MM-DD][&uid=N]` returns `{rows:[{fs,path,type,uid,size,mtime,ctime,lossy}], total, total_capped, truncated, limit, volumes:[{fs,matches,capped,…}], method, took_ms}`. `total_capped` means the total is a lower bound. The legacy parameter `regex=1` means `match=regex`.
 - `GET /api/export?<same parameters>&format=csv|jsonl` streams all matches as an attachment.
-  - CSV columns: `fs,path,type,uid,size,mtime,mtime_utc`. An export that ends early gets a final `# ERROR: …` or `# TRUNCATED …` line.
+  - CSV columns: `fs,path,type,uid,size,mtime,mtime_utc,ctime,ctime_utc`. An export that ends early gets a final `# ERROR: …` or `# TRUNCATED …` line.
   - JSON lines: one object per match, then always `{"summary":{rows, truncated, skipped, error}}`.
 
 Invalid input gets 400, a timeout gets 504, and every error body is `{error}`. A volume whose index can't be opened (for example `entries` cleared by crash recovery) is skipped and reported (`volumes[].error`, or `skipped` in the export), so it doesn't fail the whole search.
@@ -149,7 +149,7 @@ Without this table the stats worker falls back to the old in-memory-only behavio
 
 `internal/pgsearch` is a copy of cephfs-index's read path: `internal/pgindex/search.go`, the pool and name helpers from `internal/pgindex/writer.go`, and the pattern helpers from `internal/index/search.go`. Go does not allow importing another module's `internal/` packages, and a copy keeps this binary free of cgo (sqlite). The copy adds an mtime filter, a row limit that also bounds path resolution, per-call stats (so a `DB` can be shared), and a statement timeout.
 
-cephfs-indexd owns the schema: `<fs>.meta`, `<fs>.entries(parent, name, ino, type, uid, size, mtime)`, `<fs>.dirs(ino, parent, name)`. When it changes there, update `internal/pgsearch` here.
+cephfs-indexd owns the schema: `<fs>.meta`, `<fs>.entries(parent, name, ino, type, uid, size, mtime, ctime)`, `<fs>.dirs(ino, parent, name)`. When it changes there, update `internal/pgsearch` here.
 
 ## Building
 

@@ -303,7 +303,8 @@ function render() {
       el("td", { textContent: TYPES[r.type] || r.type }),
       el("td", { className: "num", textContent: r.uid ?? "-" }),
       el("td", { className: "num", textContent: fmtSize(r.size), title: r.size.toLocaleString() + " bytes" }),
-      el("td", { textContent: fmtTime(r.mtime) })));
+      el("td", { textContent: fmtTime(r.mtime) }),
+      el("td", { textContent: fmtTime(r.ctime) })));
   }
   tb.textContent = "";
   tb.append(frag);

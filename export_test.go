@@ -13,7 +13,7 @@ import (
 )
 
 func TestExportWriters(t *testing.T) {
-	good := newRow("vol1", pgsearch.Match{Type: 'f', UID: 33, Size: 10, Mtime: 1700000000, Path: "/data/a,b \"c\".json"})
+	good := newRow("vol1", pgsearch.Match{Type: 'f', UID: 33, Size: 10, Mtime: 1700000000, Ctime: 1700000100, Path: "/data/a,b \"c\".json"})
 	link := newRow("vol1", pgsearch.Match{Type: 'h', Path: "/data/link"})
 	raw := "/data/bad\xffname"
 	bad := newRow("vol2", pgsearch.Match{Type: 'd', UID: 0, Path: raw})
@@ -41,10 +41,10 @@ func TestExportWriters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(recs) != 5 || strings.Join(recs[0], ",") != "fs,path,type,uid,size,mtime,mtime_utc" {
+	if len(recs) != 5 || strings.Join(recs[0], ",") != "fs,path,type,uid,size,mtime,mtime_utc,ctime,ctime_utc" {
 		t.Fatalf("csv: %q", recs)
 	}
-	if recs[1][1] != good.Path || recs[1][2] != "file" || recs[1][3] != "33" || recs[1][6] != "2023-11-14T22:13:20Z" {
+	if recs[1][1] != good.Path || recs[1][2] != "file" || recs[1][3] != "33" || recs[1][6] != "2023-11-14T22:13:20Z" || recs[1][8] != "2023-11-14T22:15:00Z" {
 		t.Errorf("csv row: %q", recs[1])
 	}
 	if recs[2][3] != "" || recs[2][2] != "hardlink" {

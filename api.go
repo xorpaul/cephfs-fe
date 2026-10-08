@@ -252,12 +252,13 @@ type row struct {
 	UID     *uint32 `json:"uid"` // null for hardlinks: the owner is on the primary dentry
 	Size    int64   `json:"size"`
 	Mtime   int64   `json:"mtime"`
+	Ctime   int64   `json:"ctime"`
 	Lossy   bool    `json:"lossy,omitempty"`    // path is not valid UTF-8; shown with U+FFFD
 	PathB64 string  `json:"path_b64,omitempty"` // exact path bytes when lossy (export only)
 }
 
 func newRow(fs string, m pgsearch.Match) row {
-	rw := row{FS: fs, Path: m.Path, Type: string([]byte{m.Type}), Size: m.Size, Mtime: m.Mtime}
+	rw := row{FS: fs, Path: m.Path, Type: string([]byte{m.Type}), Size: m.Size, Mtime: m.Mtime, Ctime: m.Ctime}
 	if m.Type != pgsearch.TypeHardlink {
 		u := m.UID
 		rw.UID = &u

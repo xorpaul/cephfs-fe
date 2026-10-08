@@ -69,7 +69,7 @@ func TestKeeper(t *testing.T) {
 }
 
 func TestBuildQuery(t *testing.T) {
-	const sel = `SELECT parent, name, ino, type, uid, size, mtime FROM "vol1".entries WHERE `
+	const sel = `SELECT parent, name, ino, type, uid, size, mtime, ctime FROM "vol1".entries WHERE `
 	for _, tc := range []struct {
 		pattern string
 		limit   int
