@@ -276,6 +276,7 @@ type volumeResult struct {
 	Candidates int    `json:"candidates"`
 	QueryMS    int64  `json:"query_ms"`
 	ResolveMS  int64  `json:"resolve_ms"`
+	NamedPaths bool   `json:"named_paths,omitempty"` // served from the precomputed named_paths table
 	Warning    string `json:"warning,omitempty"`
 	Error      string `json:"error,omitempty"` // volume skipped
 }
@@ -382,7 +383,7 @@ func (s *server) run(ctx context.Context, sr *searchRequest) (*searchResponse, e
 		resp.TotalCapped = resp.TotalCapped || st.Capped
 		resp.Volumes = append(resp.Volumes, volumeResult{
 			FS: name, Matches: st.Matches, Capped: st.Capped, Candidates: st.Candidates,
-			QueryMS: st.Query.Milliseconds(), ResolveMS: st.Resolve.Milliseconds(),
+			QueryMS: st.Query.Milliseconds(), ResolveMS: st.Resolve.Milliseconds(), NamedPaths: st.NamedPaths,
 			Warning: warning(d.Meta),
 		})
 	}

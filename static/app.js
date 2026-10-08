@@ -267,7 +267,7 @@ function show(res) {
       el("td", { className: "num", textContent: v.matches.toLocaleString() + (v.capped ? "+" : "") }),
       el("td", { className: "num", textContent: v.candidates.toLocaleString() }),
       el("td", { className: "num", textContent: v.query_ms + " ms" }),
-      el("td", { className: "num", textContent: v.resolve_ms + " ms" }),
+      el("td", { className: "num", textContent: v.named_paths ? "precomputed" : v.resolve_ms + " ms", title: v.named_paths ? "Paths read from the precomputed named_paths table" : "" }),
       el("td", { className: v.error ? "err" : v.warning ? "warn" : "", textContent: v.error ? "skipped: " + v.error : v.warning || "complete" })));
   }
   for (const f of ["csv", "jsonl"]) {

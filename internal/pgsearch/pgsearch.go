@@ -62,8 +62,9 @@ type DB struct {
 	pool   *pgxpool.Pool
 	fsName string
 	Meta   map[string]string
-	prefix string // filesystem root path, without trailing slash
-	layout int    // meta.layout: 2 = COPY FREEZE leaves; 1 = covering indexes, no layout key (the cephfs-index version just before layout 2); 0 = older
+	prefix string          // filesystem root path, without trailing slash
+	layout int             // meta.layout: 2 = COPY FREEZE leaves; 1 = covering indexes, no layout key (the cephfs-index version just before layout 2); 0 = older
+	named  map[string]bool // names covered by named_paths (see named.go)
 }
 
 // Stats splits a search's time between the name query and path
@@ -76,6 +77,7 @@ type Stats struct {
 	Resolve    time.Duration // walking parents up to the root via dirs
 	DirsLooked int           // dir rows fetched while resolving
 	RoundTrips int           // dirs queries issued
+	NamedPaths bool          // read from the precomputed named_paths table, no path resolution
 }
 
 func (s Stats) String() string {
@@ -184,6 +186,9 @@ func Open(ctx context.Context, pool *pgxpool.Pool, fsName string) (*DB, error) {
 			d.layout = 1
 		}
 	}
+	if err := d.loadNamedPaths(ctx); err != nil {
+		return nil, fmt.Errorf("named paths of %s: %w", fsName, err)
+	}
 	return d, nil
 }
 
@@ -251,6 +256,9 @@ func Building(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
 // re-checked against q.Re client-side because Postgres uses ARE regex dialect
 // which differs from Go RE2 (e.g. \b means backspace in ARE, not word boundary).
 func (d *DB) Search(ctx context.Context, q Query, emit func(Match) error) (Stats, error) {
+	if name, ok := d.namedName(q); ok {
+		return d.searchNamed(ctx, name, q, emit)
+	}
 	var st Stats
 	pl := buildQuery(d.fsName, q).forLayout(d.layout)
 

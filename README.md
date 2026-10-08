@@ -52,7 +52,7 @@ A search can be linked: the form state is kept in the page URL.
 All endpoints require the client certificate.
 
 - `GET /api/volumes` returns `{version, building:[fs…], volumes:[{fs, prefix, started_at, entries, complete, journal_flushed, warning, error}]}`.
-- `GET /api/search?pattern=P[&match=exact|prefix|contains|regex][&fs=vol1,vol2][&type=file|dir|symlink|hardlink][&newer=YYYY-MM-DD][&uid=N]` returns `{rows:[{fs,path,type,uid,size,mtime,ctime,lossy}], total, total_capped, truncated, limit, volumes:[{fs,matches,capped,…}], method, took_ms}`. `total_capped` means the total is a lower bound. The legacy parameter `regex=1` means `match=regex`.
+- `GET /api/search?pattern=P[&match=exact|prefix|contains|regex][&fs=vol1,vol2][&type=file|dir|symlink|hardlink][&newer=YYYY-MM-DD][&uid=N]` returns `{rows:[{fs,path,type,uid,size,mtime,ctime,lossy}], total, total_capped, truncated, limit, volumes:[{fs,matches,capped,…,named_paths}], method, took_ms}`. `total_capped` means the total is a lower bound. The legacy parameter `regex=1` means `match=regex`.
 - `GET /api/export?<same parameters>&format=csv|jsonl` streams all matches as an attachment.
   - CSV columns: `fs,path,type,uid,size,mtime,mtime_utc,ctime,ctime_utc`. An export that ends early gets a final `# ERROR: …` or `# TRUNCATED …` line.
   - JSON lines: one object per match, then always `{"summary":{rows, truncated, skipped, error}}`.
@@ -145,11 +145,31 @@ Without this table the stats worker falls back to the old in-memory-only behavio
 
 `cephfs-fe.service` is a sample systemd unit.
 
+## Faster searches for frequent names
+
+An exact search for a common directory name, e.g. `mu-plugins` (one per WordPress site, about 300,000 across all volumes), is slow when the index isn't cached: finding the names is cheap, but each match's path is rebuilt by looking up its parents one directory level at a time, about 8 random disk reads per match. A full export of those matches took 22 minutes cold and a few seconds warm.
+
+For such names, cephfs-indexd (v1.2.0+) can precompute the paths into a small per-volume table, `<fs>.named_paths`. cephfs-fe uses it automatically for an exact search (`match=exact`, or a regex `^name$`) when the volume covers that name, with the usual type, uid and mtime filters; everything else is searched as before. The per-volume details in the page show `precomputed` in the Paths column, and the API sets `named_paths: true` for that volume.
+
+Enable it in the index build, so it's rebuilt with every index:
+
+```
+cephfs-indexd build --pg-dsn "$DSN" --fs a07 --pg-named-paths mu-plugins ...
+```
+
+and fill it for the existing schemas right away, without waiting for the next build:
+
+```
+cephfs-indexd named-paths --pg-dsn "$DSN" --fs all --names mu-plugins
+```
+
+Only the listed names are stored, not every directory. See the cephfs-index README ("Fast searches for specific names") for details.
+
 ## Relationship to cephfs-index
 
 `internal/pgsearch` is a copy of cephfs-index's read path: `internal/pgindex/search.go`, the pool and name helpers from `internal/pgindex/writer.go`, and the pattern helpers from `internal/index/search.go`. Go does not allow importing another module's `internal/` packages, and a copy keeps this binary free of cgo (sqlite). The copy adds an mtime filter, a row limit that also bounds path resolution, per-call stats (so a `DB` can be shared), and a statement timeout.
 
-cephfs-indexd owns the schema: `<fs>.meta`, `<fs>.entries(parent, name, ino, type, uid, size, mtime, ctime)`, `<fs>.dirs(ino, parent, name)`. When it changes there, update `internal/pgsearch` here.
+cephfs-indexd owns the schema: `<fs>.meta`, `<fs>.entries(parent, name, ino, type, uid, size, mtime, ctime)`, `<fs>.dirs(ino, parent, name)`, and the optional `<fs>.named_paths(name, path, type, uid, size, mtime, ctime)` with `<fs>.named_paths_names(name)`. When it changes there, update `internal/pgsearch` here.
 
 ## Building
 

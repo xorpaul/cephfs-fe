@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.0 (2026-10-08)
+
+### Added
+- **Precomputed paths for frequent names** — exact searches and exports for a name that cephfs-indexd v1.2.0 precomputed with `--pg-named-paths` (e.g. `mu-plugins`) read the volume's `named_paths` table instead of resolving each match's parents level by level, which costs one random read per directory level on a cold cache. Volumes and names without the table are searched as before. The per-volume details show `precomputed` in the Paths column, and the API reports `named_paths: true` per volume.
+
 ## v1.1.0 (2026-10-08)
 
 ### Added

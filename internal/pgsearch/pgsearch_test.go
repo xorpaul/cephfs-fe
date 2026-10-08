@@ -165,3 +165,37 @@ func TestSplitChunks(t *testing.T) {
 		}
 	}
 }
+
+func TestNamedPaths(t *testing.T) {
+	const sel = `SELECT path, type, uid, size, mtime, ctime FROM "vol1".named_paths WHERE name = $1`
+	for _, tc := range []struct {
+		q    Query
+		want string
+		lim  int
+	}{
+		{Query{Limit: 500, UID: -1}, sel + ` LIMIT 501`, 501},
+		{Query{Limit: -1, UID: -1}, sel + ` LIMIT 1`, 1},
+		{Query{UID: -1}, sel, 0},
+		{Query{Type: TypeDir, UID: 33, Mtime: 1700000000, Limit: 10}, sel + ` AND type = $2 AND uid = $3 AND type != $4 AND mtime >= $5 LIMIT 11`, 11},
+	} {
+		pl := buildNamedQuery("vol1", "mu-plugins", tc.q)
+		if pl.sql != tc.want || pl.sqlLimit != tc.lim || pl.args[0] != "mu-plugins" {
+			t.Errorf("%+v:\n got %s (limit %d)\nwant %s", tc.q, pl.sql, pl.sqlLimit, tc.want)
+		}
+	}
+
+	d := &DB{named: map[string]bool{"mu-plugins": true}}
+	for pattern, want := range map[string]bool{
+		`^mu-plugins$`: true,  // exact
+		`^mu-plugins`:  false, // prefix: other names too
+		`mu-plugins`:   false, // contains
+		`^plugins$`:    false, // not covered
+	} {
+		if _, ok := d.namedName(Query{Pattern: pattern}); ok != want {
+			t.Errorf("%s: named=%v, want %v", pattern, ok, want)
+		}
+	}
+	if _, ok := (&DB{}).namedName(Query{Pattern: `^mu-plugins$`}); ok {
+		t.Error("volume without named_paths must not use it")
+	}
+}
